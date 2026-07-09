@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LISTRUNNERS // Property Comparison</title>
+  <meta name="description" content="Compare two real estate listings side-by-side. Live market data pulled from Redfin and Zillow.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&family=Archivo+Narrow:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ================================================================
+       RESET & TOKENS
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; font: inherit; border: none; background: none; }
+    a { color: inherit; }
+
+    :root {
+      --bg:          #000000;
+      --surf:        #0a0a0a;
+      --surf-2:      #111111;
+      --surf-3:      #1a1a1a;
+      --border:      rgba(255,255,255,0.07);
+      --border-hi:   rgba(192,209,0,0.35);
+      --accent:      #c0d100;
+      --accent-soft: rgba(192,209,0,0.10);
+      --accent-glow: rgba(192,209,0,0.50);
+      --txt:         #ffffff;
+      --txt-2:       #999999;
+      --txt-3:       #444444;
+      --ok:          #00e887;
+      --err:         #ff4f4f;
+      --ok-glow:     rgba(0,232,135,0.40);
+      --err-glow:    rgba(255,79,79,0.40);
+      --f-disp:      'Anton',         sans-serif;
+      --f-mono:      'Space Mono',    monospace;
+      --f-ui:        'Archivo Narrow',sans-serif;
+    }
+
+    html, body { min-height: 100vh; }
+
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: var(--f-mono);
+      /* Subtle dot grid matching the original brand */
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* ================================================================
+       UTILITY ANIMATIONS
+    ================================================================ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.25; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes prog {
+      0%   { width: 0%; }
+      20%  { width: 28%; }
+      50%  { width: 58%; }
+      80%  { width: 80%; }
+      100% { width: 88%; }
+    }
+    @keyframes glow-pulse {
+      0%,100% { box-shadow: 0 0 0px var(--accent-glow); }
+      50%      { box-shadow: 0 0 28px var(--accent-glow); }
+    }
+
+    /* ================================================================
+       HEADER
+    ================================================================ */
+    .site-header {
+      text-align: center;
+      padding: 52px 24px 40px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .site-header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 50%;
+      transform: translateX(-50%);
+      width: 180px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .logo {
+      font-family: var(--f-disp);
+      font-size: clamp(2.4rem, 5.5vw, 4rem);
+      letter-spacing: 0.12em;
+      line-height: 1;
+    }
+    .logo em { color: var(--accent); font-style: normal; }
+
+    .tagline {
+      font-family: var(--f-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.38em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    /* ================================================================
+       MAIN GRID  (left | vs | right)
+    ================================================================ */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr;
+      min-height: calc(100vh - 180px);
+      padding: 48px 28px;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       PANEL
+    ================================================================ */
+    .panel { display: flex; flex-direction: column; }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      font-family: var(--f-mono);
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--border-hi);
+      padding: 3px 9px;
+      border-radius: 3px;
+    }
+
+    .panel-lbl {
+      font-family: var(--f-disp);
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+    }
+
+    /* ── Card (the visible white-bordered box) ── */
+    .card {
+      flex: 1;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 56px 44px;
+      text-align: center;
+      min-height: 520px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.4s ease;
+    }
+
+    /* Radial top-glow on active/result card */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 160px;
+      background: radial-gradient(ellipse at 50% 0%, var(--accent-soft) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    .card.lit { border-color: var(--border-hi); }
+    .card.lit::before { opacity: 1; }
+
+    /* Step wrapper drives the entry animation */
+    .step {
+      width: 100%;
+      animation: fadeUp 0.38s cubic-bezier(.2,0,0,1) both;
+    }
+
+    /* ================================================================
+       STEP — MODE SELECT
+    ================================================================ */
+    .s-prompt {
+      font-family: var(--f-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.32em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-bottom: 36px;
+    }
+
+    .mode-row {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .mode-btn {
+      font-family: var(--f-disp);
+      font-size: 1.55rem;
+      letter-spacing: 0.1em;
+      padding: 18px 44px;
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--txt);
+      border-radius: 8px;
+      text-transform: uppercase;
+      transition: border-color .22s, color .22s, box-shadow .22s, transform .1s;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 28px var(--accent-glow);
+    }
+    .mode-btn:active { transform: scale(.96); }
+
+    /* ================================================================
+       STEP — ADDRESS INPUT
+    ================================================================ */
+    .s-badge {
+      display: inline-block;
+      font-family: var(--f-mono);
+      font-size: 0.54rem;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--border-hi);
+      padding: 3px 12px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .s-heading {
+      font-family: var(--f-disp);
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .addr-form {
+      width: 100%;
+      max-width: 370px;
+      text-align: left;
+    }
+
+    .addr-input {
+      width: 100%;
+      font-family: var(--f-mono);
+      font-size: 0.82rem;
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--txt);
+      padding: 13px 16px;
+      outline: none;
+      margin-bottom: 10px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .addr-input::placeholder { color: var(--txt-3); }
+    .addr-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .search-btn {
+      width: 100%;
+      font-family: var(--f-disp);
+      font-size: 1rem;
+      letter-spacing: 0.22em;
+      padding: 13px;
+      background: var(--accent);
+      color: #000;
+      border-radius: 6px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background .2s, box-shadow .2s, transform .1s;
+    }
+    .search-btn:hover {
+      background: #d4e800;
+      box-shadow: 0 0 22px var(--accent-glow);
+    }
+    .search-btn:active { transform: scale(.97); }
+
+    .link-btn {
+      font-family: var(--f-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      color: var(--txt-3);
+      text-transform: uppercase;
+      margin-top: 18px;
+      display: block;
+      text-align: center;
+      transition: color .2s;
+    }
+    .link-btn:hover { color: var(--txt-2); }
+
+    /* ================================================================
+       STEP — LOADING
+    ================================================================ */
+    .load-title {
+      font-family: var(--f-mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.32em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .load-addr {
+      font-family: var(--f-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-bottom: 32px;
+      word-break: break-all;
+      max-width: 300px;
+    }
+
+    .scans {
+      width: 100%;
+      max-width: 300px;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+
+    .scan-line {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-family: var(--f-mono);
+      font-size: 0.7rem;
+      color: var(--txt-3);
+      padding: 7px 0;
+      opacity: 0;
+      animation: slideIn 0.35s ease forwards;
+    }
+    .scan-line:nth-child(1) { animation-delay: 0.05s; color: var(--accent); }
+    .scan-line:nth-child(2) { animation-delay: 0.9s; }
+    .scan-line:nth-child(3) { animation-delay: 1.8s; }
+
+    .scan-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+      animation: blink 1s infinite;
+    }
+
+    .scan-ico { width: 12px; flex-shrink: 0; text-align: center; }
+
+    .prog-track {
+      width: 100%;
+      max-width: 300px;
+      height: 2px;
+      background: var(--surf-3);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      animation: prog 4s ease-in-out forwards;
+    }
+
+    /* ================================================================
+       STEP — RESULT
+    ================================================================ */
+    .res { width: 100%; text-align: left; }
+
+    .res-src {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--f-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .res-src-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 8px var(--ok-glow);
+      flex-shrink: 0;
+    }
+
+    .res-street {
+      font-family: var(--f-mono);
+      font-size: 0.74rem;
+      color: var(--txt-2);
+      margin-bottom: 4px;
+    }
+
+    .res-city {
+      font-family: var(--f-disp);
+      font-size: clamp(1.5rem, 2.8vw, 2rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .res-state {
+      font-family: var(--f-mono);
+      font-size: 0.78rem;
+      color: var(--txt-2);
+      margin-bottom: 24px;
+    }
+
+    .res-rule { height: 1px; background: var(--border); margin: 20px 0; }
+
+    .res-price-lbl {
+      font-family: var(--f-mono);
+      font-size: 0.54rem;
+      letter-spacing: 0.32em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .res-price {
+      font-family: var(--f-disp);
+      font-size: clamp(2.1rem, 4.5vw, 3.2rem);
+      letter-spacing: 0.02em;
+      color: var(--accent);
+      line-height: 1;
+      text-shadow: 0 0 48px var(--accent-glow);
+    }
+    .res-price.na {
+      font-size: 0.95rem;
+      color: var(--txt-3);
+      font-family: var(--f-mono);
+      text-shadow: none;
+    }
+
+    .res-url {
+      display: block;
+      font-family: var(--f-mono);
+      font-size: 0.54rem;
+      color: var(--txt-3);
+      text-decoration: none;
+      margin-top: 9px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+      transition: color .2s;
+    }
+    .res-url:hover { color: var(--accent); }
+
+    .ghost-btn {
+      font-family: var(--f-mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      color: var(--txt-3);
+      border: 1px solid var(--border);
+      padding: 7px 16px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-top: 28px;
+      transition: color .2s, border-color .2s;
+    }
+    .ghost-btn:hover { color: var(--txt-2); border-color: var(--txt-3); }
+
+    /* ================================================================
+       STEP — ERROR
+    ================================================================ */
+    .err-x    { font-size: 2.2rem; color: var(--err); margin-bottom: 12px; }
+    .err-head {
+      font-family: var(--f-disp);
+      font-size: 1.3rem;
+      letter-spacing: 0.1em;
+      color: var(--err);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .err-body {
+      font-family: var(--f-mono);
+      font-size: 0.65rem;
+      color: var(--txt-2);
+      line-height: 1.7;
+      max-width: 270px;
+      margin-bottom: 28px;
+    }
+    .err-btn {
+      font-family: var(--f-disp);
+      font-size: 0.9rem;
+      letter-spacing: 0.15em;
+      padding: 12px 28px;
+      border: 2px solid var(--err);
+      color: var(--err);
+      border-radius: 6px;
+      text-transform: uppercase;
+      transition: background .2s;
+    }
+    .err-btn:hover { background: rgba(255,79,79,0.10); }
+
+    /* ================================================================
+       VS COLUMN
+    ================================================================ */
+    .vs-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .vs-line {
+      flex: 1;
+      width: 1px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        var(--border) 12%,
+        var(--border) 88%,
+        transparent
+      );
+    }
+    .vs-circle {
+      font-family: var(--f-disp);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--txt-3);
+      border: 1px solid var(--border);
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surf);
+      flex-shrink: 0;
+      margin: 10px 0;
+    }
+
+    /* ================================================================
+       COMPARISON FOOTER
+    ================================================================ */
+    #cmp-bar {
+      display: none;
+      margin: 8px 28px 56px;
+      max-width: calc(1300px - 56px);
+      margin-left: auto;
+      margin-right: auto;
+      background: var(--surf);
+      border: 1px solid var(--border-hi);
+      border-radius: 12px;
+      padding: 36px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #cmp-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, var(--accent-soft) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    #cmp-bar.show {
+      display: block;
+      animation: fadeUp 0.5s cubic-bezier(.2,0,0,1) both;
+    }
+
+    .cmp-hdr {
+      font-family: var(--f-mono);
+      font-size: 0.54rem;
+      letter-spacing: 0.38em;
+      color: var(--txt-2);
+      text-align: center;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+
+    .cmp-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cmp-block { text-align: center; }
+    .cmp-lbl {
+      font-family: var(--f-mono);
+      font-size: 0.54rem;
+      letter-spacing: 0.28em;
+      color: var(--txt-2);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .cmp-price {
+      font-family: var(--f-disp);
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      letter-spacing: 0.02em;
+      transition: color 0.3s;
+    }
+    .cmp-price.lo { color: var(--ok); text-shadow: 0 0 24px var(--ok-glow); }
+    .cmp-price.hi { color: var(--err); }
+    .cmp-loc {
+      font-family: var(--f-mono);
+      font-size: 0.6rem;
+      color: var(--txt-2);
+      margin-top: 4px;
+    }
+
+    .cmp-mid { text-align: center; }
+    .cmp-diff {
+      font-family: var(--f-disp);
+      font-size: 1.3rem;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .cmp-diff-lbl {
+      font-family: var(--f-mono);
+      font-size: 0.48rem;
+      letter-spacing: 0.32em;
+      color: var(--txt-3);
+      text-transform: uppercase;
+    }
+
+    /* ================================================================
+       HISTORY LOG
+    ================================================================ */
+    #history-panel {
+      max-width: 1200px;
+      margin: 0 auto 60px;
+      padding: 0 32px;
+      display: none;
+    }
+    #history-panel.show { display: block; }
+
+    .hist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      font-family: var(--f-mono);
+      font-size: 0.52rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      user-select: none;
+    }
+    .hist-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hist-header-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    .hist-badge {
+      background: rgba(192,209,0,0.1);
+      border: 1px solid rgba(192,209,0,0.2);
+      padding: 2px 8px;
+      font-size: 0.48rem;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+    }
+    .hist-clear-btn {
+      font-family: var(--f-mono);
+      font-size: 0.48rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--txt-3);
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .hist-clear-btn:hover {
+      color: var(--err);
+      border-color: var(--err);
+      background: rgba(255,79,79,0.05);
+    }
+
+    .hist-body {
+      background: var(--surf);
+      border: 1px solid var(--border);
+      max-height: 440px;
+      overflow-y: auto;
+    }
+    .hist-body::-webkit-scrollbar { width: 4px; }
+    .hist-body::-webkit-scrollbar-track { background: var(--surf); }
+    .hist-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .hist-empty {
+      padding: 32px;
+      text-align: center;
+      font-family: var(--f-mono);
+      font-size: 0.55rem;
+      color: var(--txt-3);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .hist-entry {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .hist-entry:last-child { border-bottom: none; }
+    .hist-entry:hover { background: rgba(255,255,255,0.015); }
+
+    .hist-entry-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(0,0,0,0.2);
+      transition: background 0.2s;
+    }
+    .hist-entry:hover .hist-entry-head { background: rgba(0,0,0,0.35); }
+
+    .hist-entry-tag {
+      font-family: var(--f-mono);
+      font-size: 0.48rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--txt-3);
+      font-weight: bold;
+    }
+    .hist-entry-tag.active { color: var(--accent); }
+
+    .hist-entry-addr {
+      font-family: var(--f-ui);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--txt);
+      letter-spacing: 0.04em;
+      margin-left: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hist-entry-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--f-mono);
+      font-size: 0.45rem;
+      color: var(--txt-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+    .hist-entry-meta strong {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    .hist-expand-icon {
+      font-family: var(--f-mono);
+      font-size: 0.6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .hist-entry-body {
+      display: none;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+    }
+    .hist-entry.open .hist-entry-body { display: block; }
+
+    .hist-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    .hist-listing {
+      font-family: var(--f-mono);
+    }
+    .hist-listing-label {
+      font-size: 0.45rem;
+      letter-spacing: 0.25em;
+      color: var(--txt-3);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .hist-listing-addr {
+      font-family: var(--f-ui);
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--txt-2);
+      margin-bottom: 4px;
+    }
+    .hist-listing-price {
+      font-family: var(--f-disp);
+      font-size: 1.3rem;
+      color: var(--txt);
+      margin-bottom: 6px;
+    }
+    .hist-listing-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      font-size: 0.44rem;
+      color: var(--txt-3);
+      letter-spacing: 0.06em;
+    }
+    .hist-listing-stats span {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    .hist-listing-validx {
+      font-family: var(--f-disp);
+      font-size: 1rem;
+      color: var(--txt-2);
+      margin-top: 8px;
+    }
+    .hist-listing-validx.winner {
+      color: var(--ok);
+      text-shadow: 0 0 10px var(--ok-glow);
+    }
+    .hist-vs {
+      text-align: center;
+      align-self: center;
+      font-family: var(--f-disp);
+      font-size: 0.9rem;
+      color: var(--txt-3);
+      padding: 0 4px;
+    }
+    .hist-restore-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px;
+      font-family: var(--f-mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid rgba(192,209,0,0.2);
+      background: rgba(192,209,0,0.03);
+      transition: all 0.2s;
+    }
+    .hist-restore-btn:hover {
+      background: rgba(192,209,0,0.08);
+      border-color: rgba(192,209,0,0.4);
+      box-shadow: 0 0 12px rgba(192,209,0,0.1);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ================================================================
+       RESPONSIVE
+    ================================================================ */
+    @media (max-width: 680px) {
+      .compare-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        padding: 24px 16px;
+      }
+      .vs-col {
+        flex-direction: row;
+        padding: 16px 0;
+      }
+      .vs-line {
+        flex: 1; height: 1px; width: auto;
+        background: linear-gradient(to right, transparent, var(--border) 12%, var(--border) 88%, transparent);
+      }
+      .card {
+        min-height: 420px;
+        padding: 44px 28px;
+      }
+      #cmp-bar {
+        margin: 0 16px 40px;
+        padding: 24px 20px;
+      }
+      .cmp-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      #history-panel { padding: 0 16px; }
+      .hist-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .hist-vs { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="logo">LIST<em>RUNNERS</em></div>
+  <div class="tagline">// Property Intelligence &bull; Live Market Data //</div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MAIN COMPARISON GRID
+══════════════════════════════════════════════════════════════════ -->
+<main class="compare-grid">
+
+  <!-- LEFT PANEL -->
+  <div class="panel" id="panel-a">
+    <div class="panel-head">
+      <span class="pill">A</span>
+      <span class="panel-lbl">Listing A</span>
+    </div>
+    <div class="card" id="card-a"></div>
+  </div>
+
+  <!-- VS DIVIDER -->
+  <div class="vs-col">
+    <div class="vs-line"></div>
+    <div class="vs-circle">VS</div>
+    <div class="vs-line"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel" id="panel-b">
+    <div class="panel-head">
+      <span class="pill">B</span>
+      <span class="panel-lbl">Listing B</span>
+    </div>
+    <div class="card" id="card-b"></div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     COMPARISON FOOTER  (visible only when both panels have results)
+══════════════════════════════════════════════════════════════════ -->
+<div id="cmp-bar">
+  <div class="cmp-hdr" id="cmp-header">// Value Comparison Analysis //</div>
+  <div class="cmp-row">
+    <div class="cmp-block">
+      <div class="cmp-lbl">Listing A</div>
+      <div class="cmp-price" id="ca-price">—</div>
+      <div class="cmp-loc"   id="ca-loc"></div>
+      <div class="cmp-score" id="ca-score" style="font-family:var(--f-mono); font-size:0.6rem; color:var(--accent); margin-top:8px;"></div>
+      <div class="cmp-value-idx" id="ca-val-idx" style="font-family:var(--f-disp); font-size:1.15rem; color:var(--txt-2); margin-top:4px;"></div>
+    </div>
+    <div class="cmp-mid">
+      <span class="cmp-diff"     id="c-diff">—</span>
+      <span class="cmp-diff-lbl" id="c-diff-lbl">VALUE ANALYSIS</span>
+    </div>
+    <div class="cmp-block">
+      <div class="cmp-lbl">Listing B</div>
+      <div class="cmp-price" id="cb-price">—</div>
+      <div class="cmp-loc"   id="cb-loc"></div>
+      <div class="cmp-score" id="cb-score" style="font-family:var(--f-mono); font-size:0.6rem; color:var(--accent); margin-top:8px;"></div>
+      <div class="cmp-value-idx" id="cb-val-idx" style="font-family:var(--f-disp); font-size:1.15rem; color:var(--txt-2); margin-top:4px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HISTORY LOG  (persisted via sessionStorage, Ghostrunners-style)
+══════════════════════════════════════════════════════════════════ -->
+<div id="history-panel">
+  <div class="hist-header">
+    <div class="hist-header-left">
+      <div class="hist-header-dot"></div>
+      <span>Comparison History</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="hist-badge" id="hist-count">INDEXED: 0</span>
+      <button class="hist-clear-btn" onclick="clearHistory()">CLEAR ALL</button>
+    </div>
+  </div>
+  <div class="hist-body" id="hist-body">
+    <div class="hist-empty" id="hist-empty">NO PREVIOUS COMPARISONS LOGGED YET</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     JAVASCRIPT — State machine + API calls
+══════════════════════════════════════════════════════════════════ -->
+<script>
+// ──────────────────────────────────────────────────────────────────
+// STATE  — one object per panel
+// ──────────────────────────────────────────────────────────────────
+const ST = {
+  a: fresh(),
+  b: fresh(),
+};
+
+function fresh() {
+  return { step: 'mode', mode: null, address: '', result: null, error: null };
+}
+
+// ──────────────────────────────────────────────────────────────────
+// HISTORY LOG  — sessionStorage-backed comparison history
+// ──────────────────────────────────────────────────────────────────
+let compHistory = [];
+try {
+  const stored = sessionStorage.getItem('listrunners_history');
+  if (stored) compHistory = JSON.parse(stored);
+} catch(e) { compHistory = []; }
+
+function saveHistory() {
+  try {
+    sessionStorage.setItem('listrunners_history', JSON.stringify(compHistory));
+  } catch(e) { /* quota exceeded — silently ignore */ }
+}
+
+function pushToHistory() {
+  const sa = ST.a, sb = ST.b;
+  if (sa.step !== 'result' || sb.step !== 'result') return;
+
+  const ra = sa.result, rb = sb.result;
+
+  const getLocScore = (stats) => {
+    if (!stats) return 72;
+    return Math.round((
+      (stats.safety || 75) + (stats.schools || 75) +
+      (stats.walkability || 70) + (stats.economy || 70)
+    ) / 4);
+  };
+
+  const scoreA = getLocScore(ra.stats);
+  const scoreB = getLocScore(rb.stats);
+  const naVal  = parseNum(ra.price);
+  const nbVal  = parseNum(rb.price);
+  const multA  = sa.mode === 'rent' ? 500 : 100000;
+  const multB  = sb.mode === 'rent' ? 500 : 100000;
+  const viA    = (isFinite(naVal) && naVal > 0) ? ((scoreA / naVal) * multA).toFixed(2) : null;
+  const viB    = (isFinite(nbVal) && nbVal > 0) ? ((scoreB / nbVal) * multB).toFixed(2) : null;
+
+  const entry = {
+    ts: Date.now(),
+    a: {
+      address: ra.address || sa.address,
+      city: ra.city,
+      state: ra.state,
+      price: ra.price,
+      mode: sa.mode,
+      stats: ra.stats,
+      score: scoreA,
+      valIdx: viA
+    },
+    b: {
+      address: rb.address || sb.address,
+      city: rb.city,
+      state: rb.state,
+      price: rb.price,
+      mode: sb.mode,
+      stats: rb.stats,
+      score: scoreB,
+      valIdx: viB
+    }
+  };
+
+  // Deduplicate — remove existing entry with same A+B address pair
+  const keyA = (entry.a.address || '').toLowerCase();
+  const keyB = (entry.b.address || '').toLowerCase();
+  compHistory = compHistory.filter(h => {
+    const hA = (h.a.address || '').toLowerCase();
+    const hB = (h.b.address || '').toLowerCase();
+    return !((hA === keyA && hB === keyB) || (hA === keyB && hB === keyA));
+  });
+
+  compHistory.unshift(entry);
+  if (compHistory.length > 20) compHistory = compHistory.slice(0, 20);
+  saveHistory();
+  renderHistory();
+}
+
+function renderHistory() {
+  const panel = document.getElementById('history-panel');
+  const body  = document.getElementById('hist-body');
+  const empty = document.getElementById('hist-empty');
+  const badge = document.getElementById('hist-count');
+
+  if (compHistory.length === 0) {
+    panel.classList.remove('show');
+    return;
+  }
+
+  panel.classList.add('show');
+  badge.textContent = `INDEXED: ${compHistory.length}`;
+
+  let html = '';
+  compHistory.forEach((h, idx) => {
+    const aVI = h.a.valIdx ? parseFloat(h.a.valIdx) : null;
+    const bVI = h.b.valIdx ? parseFloat(h.b.valIdx) : null;
+    const winnerA = (aVI !== null && bVI !== null && aVI > bVI);
+    const winnerB = (aVI !== null && bVI !== null && bVI > aVI);
+
+    const fmtDate = new Date(h.ts).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const statsHtml = (side) => {
+      const s = side.stats;
+      if (!s) return '';
+      return `<div class="hist-listing-stats">
+        <div>🛡️ SAFETY: <span>${s.safety || 75}</span></div>
+        <div>🎓 SCHOOLS: <span>${s.schools || 75}</span></div>
+        <div>🚶 WALK: <span>${s.walkability || 70}</span></div>
+        <div>📈 ECON: <span>${s.economy || 70}</span></div>
+      </div>`;
+    };
+
+    html += `
+      <div class="hist-entry" id="hist-${idx}" onclick="toggleHistEntry(${idx})">
+        <div class="hist-entry-head">
+          <div style="display:flex;align-items:center;min-width:0;">
+            <span class="hist-entry-tag">[COMPARISON_LOG]</span>
+            <span class="hist-entry-addr">${esc(h.a.address || '—')} vs ${esc(h.b.address || '—')}</span>
+          </div>
+          <div class="hist-entry-meta">
+            <span>${fmtDate}</span>
+            <span>${(h.a.mode || 'buy').toUpperCase()} / ${(h.b.mode || 'buy').toUpperCase()}</span>
+            <span class="hist-expand-icon">[+]</span>
+          </div>
+        </div>
+        <div class="hist-entry-body">
+          <div class="hist-detail-grid">
+            <div class="hist-listing">
+              <div class="hist-listing-label">Listing A</div>
+              <div class="hist-listing-addr">${esc(h.a.address || '—')}</div>
+              <div class="hist-listing-price">${esc(h.a.price || 'N/A')}</div>
+              ${statsHtml(h.a)}
+              <div class="hist-listing-validx ${winnerA ? 'winner' : ''}">
+                VAL IDX: ${h.a.valIdx || 'N/A'}${winnerA ? ' ★' : ''}
+              </div>
+            </div>
+            <div class="hist-vs">VS</div>
+            <div class="hist-listing">
+              <div class="hist-listing-label">Listing B</div>
+              <div class="hist-listing-addr">${esc(h.b.address || '—')}</div>
+              <div class="hist-listing-price">${esc(h.b.price || 'N/A')}</div>
+              ${statsHtml(h.b)}
+              <div class="hist-listing-validx ${winnerB ? 'winner' : ''}">
+                VAL IDX: ${h.b.valIdx || 'N/A'}${winnerB ? ' ★' : ''}
+              </div>
+            </div>
+          </div>
+          <button class="hist-restore-btn" onclick="event.stopPropagation(); restoreFromHistory(${idx})">↻ RESTORE THIS COMPARISON</button>
+        </div>
+      </div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+function toggleHistEntry(idx) {
+  const el = document.getElementById(`hist-${idx}`);
+  if (!el) return;
+  const wasOpen = el.classList.contains('open');
+  // Close all first
+  document.querySelectorAll('.hist-entry.open').forEach(e => e.classList.remove('open'));
+  if (!wasOpen) el.classList.add('open');
+}
+
+function restoreFromHistory(idx) {
+  const h = compHistory[idx];
+  if (!h) return;
+
+  // Restore panel A
+  ST.a.mode    = h.a.mode || 'buy';
+  ST.a.address = h.a.address || '';
+  ST.a.step    = 'load';
+  render('a');
+  // Directly set result without re-fetching
+  ST.a.result = {
+    address: h.a.address,
+    city: h.a.city,
+    state: h.a.state,
+    price: h.a.price,
+    stats: h.a.stats,
+    source: 'History Log'
+  };
+  ST.a.step = 'result';
+  render('a');
+
+  // Restore panel B
+  ST.b.mode    = h.b.mode || 'buy';
+  ST.b.address = h.b.address || '';
+  ST.b.step    = 'load';
+  render('b');
+  ST.b.result = {
+    address: h.b.address,
+    city: h.b.city,
+    state: h.b.state,
+    price: h.b.price,
+    stats: h.b.stats,
+    source: 'History Log'
+  };
+  ST.b.step = 'result';
+  render('b');
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearHistory() {
+  compHistory = [];
+  saveHistory();
+  renderHistory();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// RENDER  — replaces card contents and wires the step
+// ──────────────────────────────────────────────────────────────────
+function render(id) {
+  const s    = ST[id];
+  const card = document.getElementById(`card-${id}`);
+
+  card.className = 'card' + (s.step === 'result' ? ' lit' : '');
+  card.innerHTML = `<div class="step">${tmpl(id, s)}</div>`;
+
+  // Auto-focus address input for better UX
+  if (s.step === 'addr') {
+    setTimeout(() => document.getElementById(`inp-${id}`)?.focus(), 50);
+  }
+
+  updateCmpBar();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// TEMPLATES
+// ──────────────────────────────────────────────────────────────────
+function tmpl(id, s) {
+  switch (s.step) {
+    case 'mode':   return tMode(id);
+    case 'addr':   return tAddr(id, s);
+    case 'load':   return tLoad(s);
+    case 'result': return tResult(id, s);
+    case 'error':  return tError(id, s);
+    default: return '';
+  }
+}
+
+function tMode(id) {
+  return `
+    <div class="s-prompt">// Are you buying or renting? //</div>
+    <div class="mode-row">
+      <button class="mode-btn" onclick="pick('${id}','buy')">BUYING</button>
+      <button class="mode-btn" onclick="pick('${id}','rent')">RENTING</button>
+    </div>`;
+}
+
+function tAddr(id, s) {
+  const lbl = s.mode === 'buy' ? 'PURCHASING' : 'RENTING';
+  return `
+    <div class="s-badge">// ${lbl} //</div>
+    <div class="s-heading">Enter Address</div>
+    <form class="addr-form" onsubmit="doSearch(event,'${id}')">
+      <input
+        id="inp-${id}"
+        class="addr-input"
+        type="text"
+        placeholder="123 Main St, City, ST 00000"
+        value="${esc(s.address)}"
+        autocomplete="street-address"
+        spellcheck="false"
+        required
+      >
+      <button type="submit" class="search-btn">
+        SEARCH &nbsp;&#8594;
+      </button>
+    </form>
+    <button class="link-btn" onclick="goBack('${id}')">&#8592; change selection</button>`;
+}
+
+function tLoad(s) {
+  const modeWord = s.mode === 'buy' ? 'PURCHASE LISTINGS' : 'RENTAL LISTINGS';
+  return `
+    <div class="load-title">// Scanning ${modeWord} //</div>
+    <div class="load-addr">&ldquo;${esc(s.address)}&rdquo;</div>
+    <div class="scans">
+      <div class="scan-line">
+        <span class="scan-dot"></span>
+        GEOCODING VIA NOMINATIM...
+      </div>
+      <div class="scan-line">
+        <span class="scan-ico">&#9674;</span>
+        RELAYING THROUGH TOR NETWORK...
+      </div>
+      <div class="scan-line">
+        <span class="scan-ico">&#9674;</span>
+        SCRAPING REDFIN / ZILLOW...
+      </div>
+    </div>
+    <div class="prog-track"><div class="prog-fill"></div></div>`;
+}
+
+function tResult(id, s) {
+  const r        = s.result;
+  const isAVM    = (r.source || '').includes('AVM');
+  const priceLbl = s.mode === 'buy'
+    ? (isAVM ? 'EST. VALUE' : 'MARKET VALUE')
+    : (isAVM ? 'EST. RENT' : 'MONTHLY RENT');
+  const hasPrice = r.price && r.price !== 'null';
+
+  const getLocScore = (stats) => {
+    if (!stats) return 72;
+    return Math.round((
+      (stats.safety || 75) + 
+      (stats.schools || 75) + 
+      (stats.walkability || 70) + 
+      (stats.economy || 70)
+    ) / 4);
+  };
+
+  const score  = getLocScore(r.stats);
+  const na     = parseNum(r.price);
+  const mult   = s.mode === 'rent' ? 500 : 100000;
+  const valIdx = (isFinite(na) && na > 0) ? ((score / na) * mult).toFixed(2) : 'N/A';
+
+  return `
+    <div class="res" style="text-align: left; width: 100%;">
+      <div class="res-src">
+        <span class="res-src-dot"></span>
+        DATA FROM ${esc((r.source || 'UNKNOWN').toUpperCase())}
+      </div>
+
+      <div class="res-street">${esc(r.address || s.address)}</div>
+      <div class="res-city" style="margin-bottom: 2px;">${esc(r.city || '&mdash;')}</div>
+      <div class="res-state" style="margin-bottom: 15px;">${esc(r.state || '&mdash;')}</div>
+
+      <div class="res-rule"></div>
+
+      <!-- Price & Factors side-by-side -->
+      <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; margin-top: 15px;">
+        <!-- Price Block -->
+        <div style="flex: 1;">
+          <div class="res-price-lbl" style="margin-bottom: 6px;">${priceLbl}</div>
+          <div class="res-price ${hasPrice ? '' : 'na'}" style="line-height: 1.1;">
+            ${hasPrice ? esc(r.price) : 'NOT LISTED'}
+          </div>
+        </div>
+        
+        <!-- Factors (Location Stats) -->
+        <div style="flex: 1.2; border-left: 1px solid var(--border); padding-left: 20px;">
+          <div class="res-price-lbl" style="margin-bottom: 10px;">LOCATION FACTORS</div>
+          
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-family: var(--f-mono);">
+            <!-- Safety Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 0.52rem; color: var(--txt-3); letter-spacing: 0.05em;">🛡️ SAFETY</span>
+              <span style="font-size: 0.95rem; color: var(--accent); font-weight: bold; text-shadow: 0 0 10px var(--accent-soft);">${r.stats?.safety || 75}<span style="font-size:0.55rem; color: var(--txt-3); font-weight: normal;">/100</span></span>
+            </div>
+            <!-- Schools Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 0.52rem; color: var(--txt-3); letter-spacing: 0.05em;">🎓 SCHOOLS</span>
+              <span style="font-size: 0.95rem; color: var(--accent); font-weight: bold; text-shadow: 0 0 10px var(--accent-soft);">${r.stats?.schools || 75}<span style="font-size:0.55rem; color: var(--txt-3); font-weight: normal;">/100</span></span>
+            </div>
+            <!-- Walkability Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 0.52rem; color: var(--txt-3); letter-spacing: 0.05em;">🚶 WALKABILITY</span>
+              <span style="font-size: 0.95rem; color: var(--accent); font-weight: bold; text-shadow: 0 0 10px var(--accent-soft);">${r.stats?.walkability || 70}<span style="font-size:0.55rem; color: var(--txt-3); font-weight: normal;">/100</span></span>
+            </div>
+            <!-- Economy Card -->
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 0.52rem; color: var(--txt-3); letter-spacing: 0.05em;">📈 ECONOMY</span>
+              <span style="font-size: 0.95rem; color: var(--accent); font-weight: bold; text-shadow: 0 0 10px var(--accent-soft);">${r.stats?.economy || 70}<span style="font-size:0.55rem; color: var(--txt-3); font-weight: normal;">/100</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="res-rule"></div>
+
+      <!-- Value Index at the very bottom -->
+      <div style="text-align: center; margin-top: 16px; margin-bottom: 8px;">
+        <div class="res-price-lbl" style="letter-spacing: 0.25em;">FINAL VALUE INDEX</div>
+        <div style="font-family: var(--f-disp); font-size: 2.2rem; color: var(--accent); margin-top: 4px; text-shadow: 0 0 20px var(--accent-glow);">
+          ${valIdx}
+        </div>
+      </div>
+
+      ${!hasPrice && r.note ? `
+        <div style="font-family:var(--f-mono);font-size:0.58rem;color:var(--txt-3);line-height:1.6;margin-top:10px;border:1px solid var(--border);padding:8px 12px;border-radius:4px;text-align:left">
+          ${esc(r.note)}
+        </div>` : ''}
+
+      ${r.url
+        ? `<a class="res-url" href="${esc(r.url)}" target="_blank" rel="noopener" style="margin-top: 12px;">
+             &#8599; ${esc(r.url.replace('https://',''))}
+           </a>`
+        : ''}
+
+      <button class="ghost-btn" onclick="reset('${id}')" style="margin-top: 20px; width: 100%;">&#8592; CHANGE LISTING</button>
+    </div>`;
+}
+
+function tError(id, s) {
+  return `
+    <div class="err-x">&#x2715;</div>
+    <div class="err-head">No Data Found</div>
+    <div class="err-body">
+      ${esc(s.error || 'Property data could not be retrieved. Try a more complete address, e.g. "123 Main St, Austin, TX 78701".')}
+    </div>
+    <button class="err-btn" onclick="retry('${id}')">TRY AGAIN</button>`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// ACTIONS
+// ──────────────────────────────────────────────────────────────────
+function pick(id, mode) {
+  ST[id].mode = mode;
+  ST[id].step = 'addr';
+  render(id);
+}
+
+function goBack(id) {
+  ST[id].mode = null;
+  ST[id].step = 'mode';
+  render(id);
+}
+
+function doSearch(e, id) {
+  e.preventDefault();
+  const val = document.getElementById(`inp-${id}`)?.value?.trim();
+  if (!val) return;
+  ST[id].address = val;
+  ST[id].step    = 'load';
+  render(id);
+  // Brief delay so the scan animation has a moment to play
+  setTimeout(() => fetchProperty(id), 480);
+}
+
+function reset(id) {
+  ST[id] = fresh();
+  render(id);
+}
+
+function retry(id) {
+  ST[id].error = null;
+  ST[id].step  = 'addr';
+  render(id);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// API CALL
+// ──────────────────────────────────────────────────────────────────
+async function fetchProperty(id) {
+  const s = ST[id];
+  try {
+    const res = await fetch(
+      `/api/property?address=${encodeURIComponent(s.address)}&type=${s.mode}`
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Server error (${res.status})`);
+    }
+    const data  = await res.json();
+    ST[id].result = data;
+    ST[id].step   = 'result';
+  } catch (err) {
+    ST[id].error = err.message;
+    ST[id].step  = 'error';
+  }
+  render(id);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// COMPARISON BAR
+// ──────────────────────────────────────────────────────────────────
+function updateCmpBar() {
+  const sa  = ST.a;
+  const sb  = ST.b;
+  const bar = document.getElementById('cmp-bar');
+
+  if (sa.step !== 'result' || sb.step !== 'result') {
+    bar.classList.remove('show');
+    return;
+  }
+
+  bar.classList.add('show');
+
+  // Save this comparison to the history log
+  pushToHistory();
+
+  const ra = sa.result;
+  const rb = sb.result;
+
+  const elPA = document.getElementById('ca-price');
+  const elPB = document.getElementById('cb-price');
+  const elD  = document.getElementById('c-diff');
+  const elDL = document.getElementById('c-diff-lbl');
+
+  elPA.textContent = ra.price || '—';
+  elPB.textContent = rb.price || '—';
+  document.getElementById('ca-loc').textContent = [ra.city, ra.state].filter(Boolean).join(', ');
+  document.getElementById('cb-loc').textContent = [rb.city, rb.state].filter(Boolean).join(', ');
+
+  elPA.className = 'cmp-price';
+  elPB.className = 'cmp-price';
+  elD.textContent = '—';
+  elDL.textContent = 'VALUE ANALYSIS';
+
+  const getLocScore = (stats) => {
+    if (!stats) return 72;
+    return Math.round((
+      (stats.safety || 75) + 
+      (stats.schools || 75) + 
+      (stats.walkability || 70) + 
+      (stats.economy || 70)
+    ) / 4);
+  };
+
+  const scoreA = getLocScore(ra.stats);
+  const scoreB = getLocScore(rb.stats);
+
+  document.getElementById('ca-score').innerHTML = `📍 LOC SCORE: <b>${scoreA}/100</b>`;
+  document.getElementById('cb-score').innerHTML = `📍 LOC SCORE: <b>${scoreB}/100</b>`;
+
+  const na = parseNum(ra.price);
+  const nb = parseNum(rb.price);
+
+  let valIdxA = null;
+  let valIdxB = null;
+
+  const multA = sa.mode === 'rent' ? 500 : 100000;
+  const multB = sb.mode === 'rent' ? 500 : 100000;
+
+  if (isFinite(na) && na > 0) {
+    valIdxA = parseFloat(((scoreA / na) * multA).toFixed(2));
+    document.getElementById('ca-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--txt-2);">${valIdxA}</span>`;
+  } else {
+    document.getElementById('ca-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--txt-3);">N/A</span>`;
+  }
+
+  if (isFinite(nb) && nb > 0) {
+    valIdxB = parseFloat(((scoreB / nb) * multB).toFixed(2));
+    document.getElementById('cb-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--txt-2);">${valIdxB}</span>`;
+  } else {
+    document.getElementById('cb-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--txt-3);">N/A</span>`;
+  }
+
+  if (valIdxA !== null && valIdxB !== null) {
+    if (valIdxA > valIdxB) {
+      const pct = Math.round((valIdxA / valIdxB - 1) * 100);
+      elD.textContent = `LISTING A (+${pct}%)`;
+      elDL.textContent = 'MORE VALUE HIGHLIGHT';
+      document.getElementById('ca-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--ok); text-shadow:0 0 10px var(--ok-glow); font-weight:bold;">${valIdxA} ★</span>`;
+      elPA.classList.add('lo');
+      elPB.classList.add('hi');
+    } else if (valIdxB > valIdxA) {
+      const pct = Math.round((valIdxB / valIdxA - 1) * 100);
+      elD.textContent = `LISTING B (+${pct}%)`;
+      elDL.textContent = 'MORE VALUE HIGHLIGHT';
+      document.getElementById('cb-val-idx').innerHTML = `VAL INDEX: <span style="color:var(--ok); text-shadow:0 0 10px var(--ok-glow); font-weight:bold;">${valIdxB} ★</span>`;
+      elPB.classList.add('lo');
+      elPA.classList.add('hi');
+    } else {
+      elD.textContent = 'EQUAL VALUE';
+      elDL.textContent = 'VALUE ANALYSIS';
+    }
+  } else {
+    if (scoreA > scoreB) {
+      elD.textContent = 'LISTING A (BETTER LOCATION)';
+      elDL.textContent = 'LOCATION HIGHLIGHT';
+      elPA.classList.add('lo');
+    } else if (scoreB > scoreA) {
+      elD.textContent = 'LISTING B (BETTER LOCATION)';
+      elDL.textContent = 'LOCATION HIGHLIGHT';
+      elPB.classList.add('lo');
+    } else {
+      elD.textContent = 'EQUAL VALUE';
+      elDL.textContent = 'VALUE ANALYSIS';
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// UTILS
+// ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseNum(s) {
+  if (!s) return 0;
+  const str = String(s);
+  const parts = str.split(/[-\/\s+to\s+]/i).map(p => p.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    let sum = 0;
+    let count = 0;
+    for (const p of parts) {
+      const cleaned = parseFloat(p.replace(/[^0-9.]/g, ''));
+      if (isFinite(cleaned) && cleaned > 0) {
+        sum += cleaned;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0;
+  }
+  return parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+}
+function fmtUSD(n) {
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// BOOT
+// ──────────────────────────────────────────────────────────────────
+render('a');
+render('b');
+renderHistory();
+</script>
+
+</body>
+</html>

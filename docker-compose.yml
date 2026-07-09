@@ -1,0 +1,37 @@
+services:
+
+  # ── Tor SOCKS5 Proxy ──────────────────────────────────────────────────────
+  # Provides a rotating exit-node IP for Redfin/Zillow requests.
+  # SOCKS5 available within the Docker network at socks5://tor:9050
+  tor:
+    image: osminogin/tor-simple
+    container_name: listrunners-tor
+    restart: unless-stopped
+
+  # ── Scraping / Data API (Node.js / Express) ───────────────────────────────
+  backend:
+    build: ./backend
+    container_name: listrunners-api
+    restart: unless-stopped
+    depends_on:
+      - tor
+    environment:
+      - PORT=3001
+      - TOR_HOST=tor
+      - TOR_PORT=9050
+      # ── Optional API keys for extra pricing sources ─────────────────────
+      # RentCast: free tier (50 calls/month, no credit card)
+      # Sign up at https://www.rentcast.io/api
+      - RENTCAST_API_KEY=
+      # ATTOM Data: free sandbox at https://www.attomdata.com/
+      - ATTOM_API_KEY=
+
+  # ── Frontend (Nginx — static HTML + /api/* proxy to backend) ─────────────
+  frontend:
+    build: .
+    container_name: listrunners-web
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
