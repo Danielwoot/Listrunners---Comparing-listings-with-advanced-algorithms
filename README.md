@@ -36,19 +36,19 @@ Unlike traditional real estate sites, ListRunners:
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                        USER INPUT                                │
-│              "533 s. devon rd" + mode: BUY/RENT                  │
+│              "123 Main St.     + mode: BUY/RENT                  │
 └────────────────────────┬─────────────────────────────────────────┘
                          │
                          ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    PARALLEL PIPELINE                              │
+│                    PARALLEL PIPELINE                             │
 │                                                                  │
 │  ┌─────────────────────┐    ┌──────────────────────────────────┐ │
-│  │  Tor DuckDuckGo     │    │  Felo.ai Combined Session       │ │
+│  │  Tor DuckDuckGo     │    │  Felo.ai Combined Session        │ │
 │  │  Onion Scraper      │    │                                  │ │
 │  │                     │    │  1. Resolve full address         │ │
 │  │  • DDG .onion HTML  │    │  2. Extract market price         │ │
-│  │  • Redfin / Zillow  │    │  3. Rate: Safety, Schools,      │ │
+│  │  • Redfin / Zillow  │    │  3. Rate: Safety, Schools,       │ │
 │  │  • Apartments.com   │    │     Walkability, Economy         │ │
 │  │  • Rent.com         │    │                                  │ │
 │  └─────────┬───────────┘    └──────────────┬───────────────────┘ │
@@ -61,13 +61,13 @@ Unlike traditional real estate sites, ListRunners:
                          │
                          ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    FRONTEND RENDER                                │
+│                    FRONTEND RENDER                               │
 │                                                                  │
-│  ┌──────────┐  ┌────────────┐  ┌──────────────────────────────┐ │
-│  │  Price   │  │  2×2 Grid  │  │  Value Comparison Analysis   │ │
-│  │  Card    │  │  Location  │  │  + History Log               │ │
-│  │          │  │  Factors   │  │                              │ │
-│  └──────────┘  └────────────┘  └──────────────────────────────┘ │
+│  ┌──────────┐  ┌────────────┐  ┌──────────────────────────────┐  │
+│  │  Price   │  │  2×2 Grid  │  │  Value Comparison Analysis   │  │
+│  │  Card    │  │  Location  │  │  + History Log               │  │
+│  │          │  │  Factors   │  │                              │  │
+│  └──────────┘  └────────────┘  └──────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,7 +87,7 @@ Unlike traditional real estate sites, ListRunners:
 > - **Extract pricing** when Tor scraping fails (fallback)
 > - **Rate 4 location factors** on a 0–100 scale
 
-### 📊 Location Factors (2×2 Grid)
+### 📊 Location Factors
 
 | Factor | What It Measures |
 |--------|-----------------|
@@ -95,22 +95,6 @@ Unlike traditional real estate sites, ListRunners:
 | 🎓 **Schools** | Nearby school quality and education ratings |
 | 🚶 **Walkability** | Transit access, amenities proximity, walk score |
 | 📈 **Economy** | Local job market strength, economic indicators |
-
-### 📐 Value Index Algorithm
-
-The **Value Index** quantifies how much location quality you get per dollar:
-
-**For Buying:**
-```
-Value Index = (Location Score / Purchase Price) × 100,000
-```
-
-**For Renting:**
-```
-Value Index = (Location Score / Monthly Rent) × 500
-```
-
-> The rental multiplier (×500) projects monthly rent to an equivalent asset valuation (rent × 200 ≈ purchase price), keeping both modes on a **fair, comparable scale**.
 
 The **Location Score** is the average of the 4 factors:
 ```
@@ -133,17 +117,17 @@ Location Score = (Safety + Schools + Walkability + Economy) / 4
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                 Docker Compose Stack                 │
+│                 Docker Compose Stack                │
 │                                                     │
-│  ┌───────────────┐  ┌────────────┐  ┌────────────┐ │
-│  │   Frontend    │  │  Backend   │  │    Tor     │ │
-│  │   (Nginx)     │──│  (Node.js) │──│  (SOCKS5)  │ │
-│  │               │  │            │  │            │ │
-│  │  :80 → :8080  │  │   :3001    │  │   :9050    │ │
-│  │               │  │            │  │            │ │
-│  │  Static HTML  │  │  Express   │  │  Rotating  │ │
-│  │  + /api proxy │  │  Puppeteer │  │  Exit IPs  │ │
-│  └───────────────┘  └────────────┘  └────────────┘ │
+│  ┌───────────────┐  ┌────────────┐  ┌────────────┐  │
+│  │   Frontend    │  │  Backend   │  │    Tor     │  │
+│  │   (Nginx)     │──│  (Node.js) │──│  (SOCKS5)  │  │
+│  │               │  │            │  │            │  │
+│  │  :80 → :8080  │  │   :3001    │  │   :9050    │  │
+│  │               │  │            │  │            │  │
+│  │  Static HTML  │  │  Express   │  │  Rotating  │  │
+│  │  + /api proxy │  │  Puppeteer │  │  Exit IPs  │  │
+│  └───────────────┘  └────────────┘  └────────────┘  │
 │                                                     │
 └─────────────────────────────────────────────────────┘
 ```
@@ -229,20 +213,6 @@ Optional API keys can be set in `docker-compose.yml` for additional pricing data
 > These are **optional** — the app works fully without them using the Tor + Felo.ai pipeline.
 
 ---
-
-## 🎨 Design Philosophy
-
-ListRunners follows a **dark, premium aesthetic** inspired by cyberpunk intelligence dashboards:
-
-- **Pure black background** (`#000000`) with subtle dot-grid texture
-- **Acid-green accent** (`#c0d100`) for highlights, scores, and active elements
-- **Monospace typography** (Space Mono) for data, display font (Anton) for prices
-- **Glassmorphic micro-panels** for the 2×2 location factors grid
-- **Smooth transitions** and hover effects throughout
-- **Responsive layout** — fully functional on mobile
-
----
-
 <div align="center">
 
 ### Built with 🧅 Tor · 🤖 Felo.ai · 🐳 Docker
